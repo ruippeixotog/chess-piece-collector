@@ -1,0 +1,9 @@
+.project
+.metadata
+bin/
+gen/
+tmp/
+*.tmp
+*.bak
+*.swp
+local.properties
