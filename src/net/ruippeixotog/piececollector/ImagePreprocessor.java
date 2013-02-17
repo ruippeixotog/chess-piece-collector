@@ -63,7 +63,7 @@ public class ImagePreprocessor {
 		// } catch (IOException e) {
 		// Log.d(TAG, "Error accessing file: " + e.getMessage());
 		// }
-		
+
 		mFileName = System.currentTimeMillis() + ".jpg";
 		File croppedFile = new File(rawPictureDir, mFileName);
 
@@ -84,8 +84,8 @@ public class ImagePreprocessor {
 		Bitmap[][] board = new Bitmap[8][8];
 		for (int i = 0; i < 8; i++) {
 			for (int j = 0; j < 8; j++) {
-				board[i][j] = Bitmap.createBitmap(processedBitmap, i
-						* CELL_SIZE, j * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+				board[i][j] = Bitmap.createBitmap(processedBitmap, j
+						* CELL_SIZE, i * CELL_SIZE, CELL_SIZE, CELL_SIZE);
 			}
 		}
 		return board;

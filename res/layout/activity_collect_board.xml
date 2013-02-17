@@ -7,15 +7,38 @@
     <FrameLayout
         android:id="@+id/camera_preview"
         android:layout_width="fill_parent"
-        android:layout_height="fill_parent"
-        android:layout_weight="1" />
+        android:layout_height="0dip"
+        android:layout_weight="1"
+ />
 
-    <Button
-        android:id="@+id/button_capture"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:onClick="takeBoardPicture"
-        android:text="Capture" />
+        android:layout_gravity="center" >
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="takeBoardPicture"
+            android:paddingRight="10dp"
+            android:text="Capture" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Starting: " />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="takeBlackStartingPositionPicture"
+            android:text="Black" />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="takeWhiteStartingPositionPicture"
+            android:text="White" />
+    </LinearLayout>
 
 </LinearLayout>
