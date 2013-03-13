@@ -6,8 +6,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 
+import net.ruippeixotog.piececollector.BoardGridView.GridDimensions;
+
 import android.app.Activity;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.hardware.Camera;
@@ -53,23 +56,57 @@ public class CollectBoardActivity extends Activity {
 	}
 
 	public void takeWhiteStartingPositionPicture(View v) {
-		mCamera.takePicture(null, null, new StartingPicture(false));
+		mCamera.takePicture(null, null,
+				new StartingPicture(this, mGrid.getDimensions(), false));
 	}
 
 	public void takeBlackStartingPositionPicture(View v) {
-		mCamera.takePicture(null, null, new StartingPicture(true));
+		mCamera.takePicture(null, null,
+				new StartingPicture(this, mGrid.getDimensions(), false));
 	}
 
 	public void takeBoardPicture(View v) {
 		// get an image from the camera
-		mCamera.takePicture(null, null, mPicture);
+		mCamera.takePicture(null, null, new PreprocessingPictureCallback(this,
+				mGrid.getDimensions(), 128, false) {
+
+			@Override
+			public void afterPreprocess(Bitmap[][] cellBitmaps, String fileName) {
+				mCellBitmaps = cellBitmaps;
+				mCurrFileName = fileName;
+				startIdentifyCellActivity(0);
+			}
+		});
 	}
 
-	private class StartingPicture implements PictureCallback {
+	public void identifyBoardPicture(View v) {
+		// get an image from the camera
+		mCamera.takePicture(null, null, new PreprocessingPictureCallback(this,
+				mGrid.getDimensions(), 32, true) {
+
+			@Override
+			public void afterPreprocess(Bitmap[][] cellBitmaps, String fileName) {
+				mCellBitmaps = cellBitmaps;
+				mCurrFileName = fileName;
+				try {
+					ImageRecognizer recog = new ImageRecognizer(
+							CollectBoardActivity.this);
+					throw new UnsupportedOperationException("...yet"); // TODO
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		});
+	}
+
+	private class StartingPicture extends PreprocessingPictureCallback {
 		private String mySide = "0", otherSide = "1";
 		private String[] firstRow = { "R", "N", "B", "Q", "K", "B", "N", "R" };
 
-		public StartingPicture(boolean blackSide) {
+		public StartingPicture(Context context, GridDimensions grid,
+				boolean blackSide) {
+			super(context, grid, 128, false);
 			if (blackSide) {
 				mySide = "1";
 				otherSide = "0";
@@ -79,63 +116,44 @@ public class CollectBoardActivity extends Activity {
 		}
 
 		@Override
-		public void onPictureTaken(byte[] data, Camera camera) {
-			new PreprocessingTask() {
+		public void afterPreprocess(Bitmap[][] cellBitmaps, String fileName) {
+			mCellBitmaps = cellBitmaps;
+			mCurrFileName = fileName;
+
+			new AsyncTask<Void, Void, Void>() {
+				ProgressDialog mDialog = new ProgressDialog(
+						CollectBoardActivity.this);
+
+				@Override
+				protected void onPreExecute() {
+					mDialog.setMessage("Saving board data...");
+					mDialog.show();
+				}
+
+				@Override
+				protected Void doInBackground(Void... params) {
+					for (int j = 0; j < 8; j++) {
+						saveCell(0, j, otherSide + firstRow[j]);
+						saveCell(1, j, otherSide + "P");
+						saveCell(6, j, mySide + "P");
+						saveCell(7, j, mySide + firstRow[j]);
+					}
+					for (int i = 2; i <= 5; i++) {
+						for (int j = 0; j < 8; j++) {
+							saveCell(i, j, "-");
+						}
+					}
+					return null;
+				}
+
 				@Override
 				protected void onPostExecute(Void result) {
-					super.onPostExecute(result);
-
-					new AsyncTask<Void, Void, Void>() {
-
-						ProgressDialog mDialog = new ProgressDialog(
-								CollectBoardActivity.this);
-
-						@Override
-						protected void onPreExecute() {
-							mDialog.setMessage("Saving board data...");
-							mDialog.show();
-						}
-
-						@Override
-						protected Void doInBackground(Void... params) {
-							for (int j = 0; j < 8; j++) {
-								saveCell(0, j, otherSide + firstRow[j]);
-								saveCell(1, j, otherSide + "P");
-								saveCell(6, j, mySide + "P");
-								saveCell(7, j, mySide + firstRow[j]);
-							}
-							for (int i = 2; i <= 5; i++) {
-								for (int j = 0; j < 8; j++) {
-									saveCell(i, j, "-");
-								}
-							}
-							return null;
-						}
-
-						@Override
-						protected void onPostExecute(Void result) {
-							mDialog.dismiss();
-						}
-
-					}.execute((Void[]) null);
+					mDialog.dismiss();
 				}
-			}.execute(data);
-		}
-	};
 
-	private PictureCallback mPicture = new PictureCallback() {
-
-		@Override
-		public void onPictureTaken(byte[] data, Camera camera) {
-			new PreprocessingTask() {
-				@Override
-				protected void onPostExecute(Void result) {
-					super.onPostExecute(result);
-					startIdentifyCellActivity(0);
-				}
-			}.execute(data);
+			}.execute((Void[]) null);
 		}
-	};
+	}
 
 	private void startIdentifyCellActivity(int cellIndex) {
 		Intent intent = new Intent(CollectBoardActivity.this,
@@ -217,7 +235,7 @@ public class CollectBoardActivity extends Activity {
 
 		@Override
 		protected Void doInBackground(byte[]... data) {
-			ImagePreprocessor preprocessor = new ImagePreprocessor();
+			ImagePreprocessor preprocessor = new ImagePreprocessor(128, false);
 			mCellBitmaps = preprocessor
 					.preprocess(data[0], mGrid.getDimensions()).save()
 					.parseCells();
